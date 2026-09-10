@@ -31,6 +31,7 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 ├── reports/
 │   └── figures/          # generated plots for the report
 ├── docs/                 # milestone submissions
+├── tests/                # unit tests, mirrors src/
 └── requirements.txt
 ```
 
@@ -40,6 +41,14 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 python -m venv .venv
 .venv\Scripts\activate       # Windows
 pip install -r requirements.txt
+```
+
+## Testing
+
+Every `src/` module has a matching `tests/` module. A task is only marked Done once its unit tests pass.
+
+```bash
+pytest
 ```
 
 ## Status

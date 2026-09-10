@@ -13,3 +13,5 @@ seaborn
 jupyter
 imbalanced-learn
 tqdm
+pytest
+pytest-cov
