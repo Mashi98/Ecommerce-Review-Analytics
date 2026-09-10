@@ -38,8 +38,8 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 ## Setup
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate       # Windows
+py -3.13 -m venv .venv        # Python 3.13 recommended — some deps lack wheels on newer versions
+.venv\Scripts\activate         # Windows
 pip install -r requirements.txt
 ```
 
