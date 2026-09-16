@@ -17,12 +17,16 @@ data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 
-# Models / large artifacts
+# Models / large artifacts (trained weights are not committed — retrain or fetch from Drive)
 *.pt
 *.pth
 *.bin
 *.h5
-models/*.joblib
+*.safetensors
+*.onnx
+*.ckpt
+models/*
+!models/.gitkeep
 
 # Environment / secrets
 .env

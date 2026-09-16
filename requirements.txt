@@ -8,6 +8,9 @@ gensim
 bertopic
 transformers
 torch
+datasets
+accelerate
+evaluate
 matplotlib
 seaborn
 jupyter
