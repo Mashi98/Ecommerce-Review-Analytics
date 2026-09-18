@@ -107,6 +107,19 @@ def coherence_cv(topic_words: list[list[str]], tokens: list[list[str]], dictiona
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 
+def embed_documents(docs: list[str], embedding_model: str = EMBEDDING_MODEL, batch_size: int = 64):
+    """Sentence embeddings for a document list.
+
+    Split out from `train_bertopic` so a tuning sweep can embed once and reuse
+    the matrix — on CPU this step dominates the runtime.
+    """
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer(embedding_model).encode(
+        docs, batch_size=batch_size, show_progress_bar=True
+    )
+
+
 def build_topic_vectorizer(min_df: int = 5, ngram_range: tuple[int, int] = (1, 2)):
     """CountVectorizer for BERTopic's c-TF-IDF topic representation.
 
@@ -126,6 +139,7 @@ def train_bertopic(
     embedding_model: str = EMBEDDING_MODEL,
     min_topic_size: int = 50,
     vectorizer_model=None,
+    embeddings=None,
 ):
     """Fit BERTopic over raw review text.
 
@@ -133,6 +147,10 @@ def train_bertopic(
     non-deterministic between runs, which would break the reproducibility
     checklist. `num_topics` caps the count via topic reduction; leave it None
     to let HDBSCAN decide.
+
+    Pass `embeddings` (from `embed_documents`) to reuse a precomputed matrix
+    across configurations — embedding is by far the slowest step, so tuning
+    runs should compute it once rather than per-run.
     """
     from bertopic import BERTopic
     from umap import UMAP
@@ -154,7 +172,7 @@ def train_bertopic(
         calculate_probabilities=False,
         verbose=True,
     )
-    topics, _ = model.fit_transform(docs)
+    topics, _ = model.fit_transform(docs, embeddings=embeddings)
     return model, topics
 
 
