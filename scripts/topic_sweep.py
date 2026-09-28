@@ -47,20 +47,37 @@ DEPARTMENT_COL = "Department Name"
 TOP_TOPICS_PER_DEPARTMENT = 5
 
 
-def md_table(df: pd.DataFrame, float_fmt: str = "{:.4f}") -> str:
+def md_table(
+    df: pd.DataFrame,
+    float_fmt: str = "{:.4f}",
+    col_formats: dict[str, str] | None = None,
+) -> str:
     """Markdown table from a DataFrame.
 
     `DataFrame.to_markdown` needs `tabulate`, which is not a project dependency
     and is not worth adding for report formatting alone.
-    """
 
-    def cell(value) -> str:
+    `col_formats` overrides `float_fmt` per column — coherence wants four
+    decimals in the same table where a percentage wants one.
+    """
+    col_formats = col_formats or {}
+
+    def cell(value, column: str) -> str:
+        # Missing values must be tested before the float branch: NaN is itself
+        # a float, so checking the other way round renders it as "nan".
+        if value is None or value is pd.NA:
+            return ""
         if isinstance(value, float):
-            return float_fmt.format(value)
-        return "" if pd.isna(value) else str(value)
+            if pd.isna(value):
+                return ""
+            return col_formats.get(column, float_fmt).format(value)
+        return str(value)
 
     header = [str(c) for c in df.columns]
-    rows = [[cell(v) for v in row] for row in df.itertuples(index=False)]
+    rows = [
+        [cell(v, str(c)) for v, c in zip(row, df.columns)]
+        for row in df.itertuples(index=False)
+    ]
     widths = [
         max(len(header[i]), *(len(r[i]) for r in rows)) if rows else len(header[i])
         for i in range(len(header))
@@ -136,6 +153,11 @@ def run_sweep(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         )
 
     summary = pd.DataFrame(rows).sort_values("coherence_cv", ascending=False)
+    if "outlier_docs" in summary:
+        # Nullable integer: the LDA rows have no outlier count, and a plain int
+        # column cannot carry that gap without turning the whole column float
+        # and printing counts as "224.0000".
+        summary["outlier_docs"] = summary["outlier_docs"].astype("Int64")
     return summary.reset_index(drop=True), fitted
 
 
@@ -187,7 +209,7 @@ def write_report(summary: pd.DataFrame, fitted: dict, df: pd.DataFrame) -> None:
         "",
         "## Sweep results",
         "",
-        md_table(summary),
+        md_table(summary, col_formats={"outlier_pct": "{:.1f}"}),
         "",
         f"Best BERTopic: **{best_bertopic['config']}** (c_v {best_bertopic['coherence_cv']:.4f})",
         f"Best LDA: **{best_lda['config']}** (c_v {best_lda['coherence_cv']:.4f})",
