@@ -17,11 +17,13 @@ Writes:
   reports/topic_models.md         sweep + labeled topics + department breakdown
 """
 
+import hashlib
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
-from src.models.baseline import load_split
+from src.models.baseline import PROCESSED_DIR, load_split
 from src.models.topics import (
     RANDOM_SEED,
     TOP_N_WORDS,
@@ -37,14 +39,42 @@ from src.models.transformer import TEXT_COL_RAW
 
 REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
 
-LDA_TOPIC_COUNTS = [10, 15, 20]
+LDA_TOPIC_COUNTS = [10]
 
-# (min_topic_size, nr_topics). nr_topics=None lets HDBSCAN choose the count;
-# the current default is (50, 10), the 2026-09-19 proposal is (25, None).
-BERTOPIC_CONFIGS = [(50, 10), (50, None), (25, 10), (25, None)]
+# (min_topic_size, nr_topics). nr_topics=None lets HDBSCAN choose the count.
+# Narrowed to the two that decide the open question in section 5: the current
+# default against the 2026-09-19 proposal. The full 2x2 grid — adding (50, None)
+# and (25, 10) — costs roughly twice the runtime and the same again in memory.
+BERTOPIC_CONFIGS = [(50, 10), (25, None)]
 
 DEPARTMENT_COL = "Department Name"
 TOP_TOPICS_PER_DEPARTMENT = 5
+
+# Embedding is the longest and most memory-hungry step — ~13 minutes for the
+# full training split — and losing it to an interrupted run means starting over.
+# Cache it next to the splits, which are already gitignored.
+EMBED_BATCH_SIZE = 32
+
+
+def cached_embeddings(docs: list[str], batch_size: int = EMBED_BATCH_SIZE):
+    """Embed `docs`, reusing a previous run's matrix when there is one.
+
+    The cache file is named by a digest of the documents themselves, so a
+    different corpus simply misses rather than silently loading the wrong
+    vectors.
+    """
+    digest = hashlib.sha256("\n".join(docs).encode("utf-8")).hexdigest()[:16]
+    cache_path = PROCESSED_DIR / f"embeddings-{digest}.npy"
+
+    if cache_path.exists():
+        print(f"reusing cached embeddings: {cache_path.name}")
+        return np.load(cache_path)
+
+    print(f"embedding {len(docs)} documents (batch_size={batch_size})...")
+    embeddings = embed_documents(docs, batch_size=batch_size)
+    np.save(cache_path, embeddings)
+    print(f"cached embeddings to {cache_path.name}")
+    return embeddings
 
 
 def md_table(
@@ -95,8 +125,7 @@ def run_sweep(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     docs = df[TEXT_COL_RAW].fillna("").astype(str).to_list()
 
     print(f"corpus: {len(df)} reviews | {len(tokens)} non-empty token lists")
-    print(f"embedding {len(docs)} documents once, reused across configs...")
-    embeddings = embed_documents(docs)
+    embeddings = cached_embeddings(docs)
 
     rows = []
     fitted = {}
