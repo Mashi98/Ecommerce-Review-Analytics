@@ -31,6 +31,13 @@ RANDOM_SEED = 42
 NUM_TOPICS = 10
 TOP_N_WORDS = 10
 
+# Primary BERTopic configuration, chosen from reports/topic_models.md: it
+# surfaces specific issue topics (itchy, sheer, shrinks, missing buttons) that
+# the 10-topic reduction merges away, at the cost of ~32% outlier documents and
+# a lower c_v than LDA. nr_topics=None lets HDBSCAN choose the count.
+BERTOPIC_MIN_TOPIC_SIZE = 25
+BERTOPIC_NR_TOPICS = None
+
 # Dictionary filtering: drop terms in <5 documents or >50% of them.
 NO_BELOW = 5
 NO_ABOVE = 0.5
@@ -134,10 +141,10 @@ def build_topic_vectorizer(min_df: int = 5, ngram_range: tuple[int, int] = (1, 2
 
 def train_bertopic(
     docs: list[str],
-    num_topics: int | None = None,
+    num_topics: int | None = BERTOPIC_NR_TOPICS,
     seed: int = RANDOM_SEED,
     embedding_model: str = EMBEDDING_MODEL,
-    min_topic_size: int = 50,
+    min_topic_size: int = BERTOPIC_MIN_TOPIC_SIZE,
     vectorizer_model=None,
     embeddings=None,
 ):
@@ -216,7 +223,7 @@ def compare_topic_models(
     lda_words = lda_topic_words(lda, n_words=n_words)
 
     docs = df[TEXT_COL_RAW].fillna("").astype(str).to_list()
-    bertopic_model, bertopic_assignments = train_bertopic(docs, num_topics=num_topics, seed=seed)
+    bertopic_model, bertopic_assignments = train_bertopic(docs, seed=seed)
     bertopic_words = bertopic_topic_words(bertopic_model, n_words=n_words)
 
     summary = pd.DataFrame(

@@ -5,15 +5,20 @@ is not fit here — it downloads a sentence-transformer and takes minutes on
 CPU — so only its pure post-processing helpers are covered, with stubs.
 """
 
+import inspect
+
 import pandas as pd
 import pytest
 
 from src.models.topics import (
     bertopic_topic_words,
+    BERTOPIC_MIN_TOPIC_SIZE,
+    BERTOPIC_NR_TOPICS,
     build_dictionary,
     coherence_cv,
     lda_topic_words,
     tokenized_corpus,
+    train_bertopic,
     train_lda,
 )
 
@@ -134,3 +139,12 @@ def test_topic_vectorizer_strips_stopwords():
     features = set(vectorizer.get_feature_names_out())
     assert not ({"the", "is", "and"} & features)
     assert {"dress", "fabric", "soft"} <= features
+
+
+def test_train_bertopic_defaults_to_primary_config():
+    """The 2026-10-12 decision: BERTopic min_topic_size=25, topic count left to HDBSCAN."""
+    params = inspect.signature(train_bertopic).parameters
+    assert BERTOPIC_MIN_TOPIC_SIZE == 25
+    assert BERTOPIC_NR_TOPICS is None
+    assert params["min_topic_size"].default == BERTOPIC_MIN_TOPIC_SIZE
+    assert params["num_topics"].default is BERTOPIC_NR_TOPICS
