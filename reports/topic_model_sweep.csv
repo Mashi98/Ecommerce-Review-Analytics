@@ -1,0 +1,4 @@
+model,config,n_topics,coherence_cv,outlier_docs,outlier_pct
+LDA,num_topics=10,10,0.47006819402125666,,
+BERTopic,"min_topic_size=25, nr_topics=None",53,0.45431461709527,5108,32.3
+BERTopic,"min_topic_size=50, nr_topics=10",9,0.4039043283911734,1284,8.1
