@@ -1,6 +1,6 @@
 # Results draft (Milestone 2 / final report)
 
-Working draft of the results and error-analysis sections. Every number is from a file in `reports/` or from the validation split; the test-set rows are marked **TODO** until the single test evaluation has been run. Nothing here uses the test set yet.
+Working draft of the results and error-analysis sections. Every number is from a file in `reports/` or from the validation split. The test set has not been used for anything: the Milestone 2 results are validation results (section 1.2 explains why).
 
 ## 1. Sentiment classification
 
@@ -33,9 +33,11 @@ DistilBERT is given raw text because its subword tokenizer uses the words that l
 
 DistilBERT improves every class, and macro-F1 by 0.058. Most of the gain is on the minority classes (negative +0.085 F1, neutral +0.066), which is what macro-F1 rewards. The neutral class stays weak for both models.
 
-### 1.2 Test results (run once)
+### 1.2 Test set: not evaluated at Milestone 2
 
-**TODO** — paste after the single test evaluation. Same layout as 1.1: accuracy, macro-F1, weighted-F1, the per-class table and the confusion matrix, for both models on the same 3,386 reviews. State the macro-F1 delta.
+The 3,386-review test split has not been scored by either model. The reported DistilBERT run (580 validation errors) was trained in a Colab session whose weights were not retained, so it cannot be scored on the test set afterwards. Its validation predictions were exported (`reports/val_preds_distilbert.csv`), which is why every number in this document can still be reproduced from files in the repository.
+
+Retraining to obtain a model that could be scored would not reproduce the reported run (see the note below), so the validation numbers above are the Milestone 2 result. They are slightly optimistic as an estimate of unseen-data performance, because the best DistilBERT checkpoint was chosen on validation macro-F1 and the baseline settings were tuned against the same split. The test split is untouched. The planned single evaluation of both models on it moves to the final report, run with a model whose weights and test predictions are saved at the time.
 
 > Note for the reproducibility section: DistilBERT training on a GPU is not bit-reproducible even with a fixed seed. Two runs with identical settings gave 586 and 580 validation errors (macro-F1 0.676 and 0.682). The reported figures are from the 580-error run; the second run is a measure of run-to-run noise, about 0.006 macro-F1.
 
@@ -125,6 +127,8 @@ Most of what unsupervised topic modelling finds in this corpus is *what the prod
 
 ## 5. Limitations (to expand)
 
+- No test-set result yet (section 1.2). The headline numbers are validation numbers, and the model was selected on that split.
+- The reported DistilBERT weights were not retained, so that exact run cannot be re-scored; its validation predictions are saved in `reports/val_preds_distilbert.csv`.
 - Sentiment labels come from star ratings; the neutral class and the 4-star boundary are partly label noise.
 - A single stratified split; DistilBERT results vary by about 0.006 macro-F1 between runs of the same settings, and no confidence intervals have been computed.
 - 32% of reviews are BERTopic outliers and are excluded from every topic statistic.
