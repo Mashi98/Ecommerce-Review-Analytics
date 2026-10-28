@@ -148,3 +148,78 @@ def test_train_bertopic_defaults_to_primary_config():
     assert BERTOPIC_NR_TOPICS is None
     assert params["min_topic_size"].default == BERTOPIC_MIN_TOPIC_SIZE
     assert params["num_topics"].default is BERTOPIC_NR_TOPICS
+
+
+# --- near-duplicate topic merging ------------------------------------------
+
+
+def _similarity(pairs: dict[tuple[int, int], float], n: int):
+    import numpy as np
+
+    matrix = np.eye(n)
+    for (i, j), value in pairs.items():
+        matrix[i, j] = matrix[j, i] = value
+    return matrix
+
+
+def test_group_similar_topics_merges_pairs_above_threshold():
+    from src.models.topics import group_similar_topics
+
+    sim = _similarity({(0, 1): 0.9, (2, 3): 0.8}, 4)
+    assert group_similar_topics(sim, [10, 10, 10, 10], min_similarity=0.5) == [[0, 1], [2, 3]]
+
+
+def test_group_similar_topics_ignores_pairs_below_threshold():
+    from src.models.topics import group_similar_topics
+
+    sim = _similarity({(0, 1): 0.3}, 3)
+    assert group_similar_topics(sim, [10, 10, 10], min_similarity=0.5) == []
+
+
+def test_group_similar_topics_does_not_chain_through_a_shared_neighbour():
+    # 0~1 and 1~2 are similar but 0~2 is not: single linkage would merge all
+    # three through topic 1, complete linkage must not.
+    from src.models.topics import group_similar_topics
+
+    sim = _similarity({(0, 1): 0.9, (1, 2): 0.9, (0, 2): 0.1}, 3)
+    groups = group_similar_topics(sim, [10, 10, 10], min_similarity=0.5)
+    assert all(len(g) < 3 for g in groups)
+
+
+def test_group_similar_topics_excludes_oversized_topics():
+    from src.models.topics import group_similar_topics
+
+    sim = _similarity({(0, 1): 0.95, (1, 2): 0.9, (0, 2): 0.9}, 3)
+    # Topic 0 is a category anchor: it must not absorb its look-alikes.
+    assert group_similar_topics(sim, [900, 20, 20], min_similarity=0.5, max_topic_size=500) == [[1, 2]]
+
+
+def test_group_similar_topics_handles_too_few_candidates():
+    from src.models.topics import group_similar_topics
+
+    assert group_similar_topics(_similarity({}, 1), [10]) == []
+    assert group_similar_topics(_similarity({(0, 1): 0.9}, 2), [900, 10], max_topic_size=500) == []
+
+
+def test_merge_similar_topics_passes_original_ids_to_bertopic():
+    import numpy as np
+    from scipy.sparse import csr_matrix
+
+    from src.models.topics import merge_similar_topics
+
+    class StubModel:
+        topic_sizes_ = {-1: 50, 0: 900, 1: 20, 2: 20, 3: 20}
+        merged = None
+
+        def get_topics(self):
+            return {t: [] for t in self.topic_sizes_}
+
+        # row 0 is the outlier topic; topics 1 and 2 are identical, 3 differs, 0 is huge
+        c_tf_idf_ = csr_matrix(np.array([[1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 1, 0], [0, 0, 1]], dtype=float))
+
+        def merge_topics(self, docs, groups):
+            self.merged = groups
+
+    model = StubModel()
+    assert merge_similar_topics(model, ["d"], min_similarity=0.9, max_topic_size=500) == [[1, 2]]
+    assert model.merged == [[1, 2]]

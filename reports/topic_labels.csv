@@ -1,0 +1,46 @@
+topic,theme,kind
+0,dresses (general),product
+1,shirts,product
+2,sweaters,product
+3,"xs / petite sizing (dresses, tops, sweaters)",sizing-fit
+4,skirts and shorts (waist fit),product
+5,generic praise for tops,generic
+6,blouses,product
+7,jeans (sizing and stretch),product
+8,tops: bust and chest fit,sizing-fit
+9,pants,product
+10,tees,product
+11,jackets,product
+12,tanks,product
+13,"quality, price and everyday basics",generic
+14,tunics and leggings,product
+15,cardigans,product
+16,swimsuits,product
+17,vests,product
+18,jumpsuits,product
+19,rompers (torso length),product
+20,colors (as pictured),color
+21,shorts,product
+22,soft fabric,fabric-feel
+23,coats,product
+24,leggings,product
+25,itchy wool / scratchy knits,issue
+26,xl sizing (matches photos),sizing-fit
+27,"layering: needs a cami, sheer, staticky",issue
+28,comfy bottoms,fabric-feel
+29,blazers,product
+30,white items (sheerness),issue
+31,runs large / runs small,sizing-fit
+32,looks different on the hanger than on the body,expectation
+33,medium / large fit reports,sizing-fit
+34,AG jeans (brand),brand
+35,black and neutral colorways,color
+36,bras,product
+37,comfortable (generic),generic
+38,ponchos,product
+39,corduroy pants,product
+40,"care: dry-clean only, delicate, washing",issue
+41,fits true to size (tts),sizing-fit
+42,"buttons: missing, falling off, too tight",issue
+43,true-to-size reports,sizing-fit
+44,swing dresses,product

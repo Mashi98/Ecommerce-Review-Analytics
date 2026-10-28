@@ -22,6 +22,7 @@ supplies a stopword-filtered CountVectorizer to prevent this.
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from src.models.baseline import TEXT_COL, load_split
@@ -37,6 +38,16 @@ TOP_N_WORDS = 10
 # a lower c_v than LDA. nr_topics=None lets HDBSCAN choose the count.
 BERTOPIC_MIN_TOPIC_SIZE = 25
 BERTOPIC_NR_TOPICS = None
+
+# Near-duplicate merging, chosen by inspecting the 53-topic fit (see
+# reports/topic_models_merged.md). Complete linkage means every pair in a merged
+# group is at least this similar, so topics cannot chain together through a
+# shared generic word. Topics above the size cap are category anchors (dress,
+# shirt, sweater, skirt, generic praise) and are never merged: they share
+# "love / size / fit" vocabulary with everything and would absorb the small
+# issue topics the primary configuration exists to surface.
+MERGE_MIN_SIMILARITY = 0.45
+MERGE_MAX_TOPIC_SIZE = 500
 
 # Dictionary filtering: drop terms in <5 documents or >50% of them.
 NO_BELOW = 5
@@ -181,6 +192,73 @@ def train_bertopic(
     )
     topics, _ = model.fit_transform(docs, embeddings=embeddings)
     return model, topics
+
+
+def group_similar_topics(
+    similarity,
+    sizes,
+    min_similarity: float = MERGE_MIN_SIMILARITY,
+    max_topic_size: int = MERGE_MAX_TOPIC_SIZE,
+) -> list[list[int]]:
+    """Groups of near-duplicate topics, as positions into `similarity`.
+
+    Complete-linkage clustering on the cosine similarity matrix: a group forms
+    only if *every* pair in it is at least `min_similarity` similar. Topics
+    larger than `max_topic_size` are left out. Only groups of two or more are
+    returned, so an empty list means nothing needs merging.
+    """
+    from scipy.cluster.hierarchy import fcluster, linkage
+    from scipy.spatial.distance import squareform
+
+    similarity = np.asarray(similarity, dtype=float)
+    candidates = [i for i, size in enumerate(sizes) if size <= max_topic_size]
+    if len(candidates) < 2:
+        return []
+
+    distance = 1.0 - similarity[np.ix_(candidates, candidates)]
+    distance = (distance + distance.T) / 2  # guard against float asymmetry
+    np.fill_diagonal(distance, 0.0)
+    labels = fcluster(
+        linkage(squareform(distance, checks=False), method="complete"),
+        t=1.0 - min_similarity,
+        criterion="distance",
+    )
+
+    clusters: dict[int, list[int]] = {}
+    for position, label in zip(candidates, labels):
+        clusters.setdefault(int(label), []).append(position)
+    return sorted(g for g in clusters.values() if len(g) > 1)
+
+
+def merge_similar_topics(
+    model,
+    docs: list[str],
+    min_similarity: float = MERGE_MIN_SIMILARITY,
+    max_topic_size: int = MERGE_MAX_TOPIC_SIZE,
+) -> list[list[int]]:
+    """Merge near-duplicate topics of a fitted BERTopic model, in place.
+
+    Similarity is the cosine of the topics' c-TF-IDF vectors, so topics merge on
+    shared *vocabulary* (three "jacket" topics) rather than on embedding
+    distance, which also pulls together unrelated topics that merely appear in
+    similar reviews. Returns the merged groups as lists of the original topic
+    ids; BERTopic renumbers topics by size afterwards, so read the model's own
+    `topics_` for the new assignments.
+    """
+    from sklearn.metrics.pairwise import cosine_similarity
+
+    topic_ids = [t for t in sorted(model.get_topics()) if t != -1]
+    offset = 1 if -1 in model.get_topics() else 0  # row 0 of c-TF-IDF is the outlier topic
+    similarity = cosine_similarity(model.c_tf_idf_[offset:])
+    sizes = [model.topic_sizes_[t] for t in topic_ids]
+
+    groups = [
+        [int(topic_ids[i]) for i in group]
+        for group in group_similar_topics(similarity, sizes, min_similarity, max_topic_size)
+    ]
+    if groups:
+        model.merge_topics(docs, groups)
+    return groups
 
 
 def bertopic_topic_words(model, n_words: int = TOP_N_WORDS) -> list[list[str]]:
