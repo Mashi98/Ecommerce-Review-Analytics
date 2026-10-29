@@ -2,7 +2,7 @@
 
 Everything here was read from the code, the environment or a file in the repository, and the claims marked **verified** were re-run on 2026-10-29. Where a result cannot be reproduced exactly, this document says so (section 8).
 
-Code state: commit `e4fa2aa` or later on `main`, <https://github.com/Mashi98/Ecommerce-Review-Analytics>. The test suite passes (115 tests, `pytest`).
+Code state: commit `e4fa2aa` or later on `main`, <https://github.com/Mashi98/Ecommerce-Review-Analytics>. The test suite passes (124 tests, `pytest`).
 
 ## 1. Summary
 
@@ -137,8 +137,9 @@ Which model sees which text:
 | Merged topics and labels | `python -m scripts.topic_merge` | `reports/topic_models_merged.md`, `topic_samples.csv`, `topics_merged_by_department.csv` |
 | DistilBERT | Colab: `notebooks/02_distilbert_colab.ipynb` on a T4 (see `docs/colab-setup.md`) | validation predictions CSV |
 | DistilBERT error analysis | `python -m scripts.error_analysis --preds reports/val_preds_distilbert.csv --name distilbert --against baseline` | `reports/error_analysis_distilbert.md` and `_rows.csv` |
+| Try the baseline on your own review text | `python -m scripts.predict_review "review text"` (about 20 s: trains the baseline, then predicts) | printed prediction and driving words |
 | Architecture diagram | `python -m scripts.architecture_diagram` | `reports/figures/architecture.png`, `.svg` |
-| Unit tests | `pytest` | 115 passed |
+| Unit tests | `pytest` | 124 passed |
 
 ## 10. Known limits on exact reproducibility
 
