@@ -40,8 +40,11 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 ```bash
 py -3.13 -m venv .venv        # Python 3.13 recommended — some deps lack wheels on newer versions
 .venv\Scripts\activate         # Windows
-pip install -r requirements.txt
+pip install -r requirements-lock.txt   # exact versions used for the reported results
+# pip install -r requirements.txt     # or the latest compatible versions
 ```
+
+Hardware, seeds, data checksums, splits and hyperparameters are in [`docs/reproducibility.md`](docs/reproducibility.md).
 
 ## Testing
 
