@@ -134,7 +134,7 @@ Which model sees which text:
 | Splits | `python -m src.data.split` | `data/processed/*.csv` |
 | Baseline validation metrics and error analysis | `python -m scripts.error_analysis` | `reports/error_analysis_baseline.md` and `_rows.csv` |
 | Topic model sweep and comparison | `python -m scripts.topic_sweep` | `reports/topic_models.md`, `topic_model_sweep.csv`, `topics_by_department.csv` |
-| Merged topics and labels | `python -m scripts.topic_merge` | `reports/topic_models_merged.md`, `topic_samples.csv`, `topics_merged_by_department.csv` |
+| Merged topics and labels | `python -m scripts.topic_merge` | `reports/topic_models_merged.md`, `topic_samples.csv`, `topics_merged_by_department.csv`, `topic_assignments.csv` (per-review topic, read by the dashboard) |
 | DistilBERT | Colab: `notebooks/02_distilbert_colab.ipynb` on a T4 (see `docs/colab-setup.md`) | validation predictions CSV |
 | DistilBERT error analysis | `python -m scripts.error_analysis --preds reports/val_preds_distilbert.csv --name distilbert --against baseline` | `reports/error_analysis_distilbert.md` and `_rows.csv` |
 | Try the baseline on your own review text | `python -m scripts.predict_review "review text"` (about 20 s: trains the baseline, then predicts) | printed prediction and driving words |

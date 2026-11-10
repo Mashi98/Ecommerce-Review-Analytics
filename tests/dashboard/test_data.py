@@ -6,8 +6,12 @@ from src.dashboard.data import (
     CLASS_COL,
     DEPARTMENT_COL,
     SPLIT_COL,
+    SPLIT_ROW_COL,
     UNKNOWN,
     age_band,
+    attach_topics,
+    load_topic_assignments,
+    topic_sentiment_table,
     filter_reviews,
     load_dashboard_data,
     load_topic_table,
@@ -15,6 +19,7 @@ from src.dashboard.data import (
     sentiment_breakdown,
 )
 from src.models.baseline import LABEL_COL
+from src.models.topics import text_digest
 
 
 def _split_csv(rows):
@@ -144,3 +149,67 @@ def test_load_topic_table_real_reports():
     out = load_topic_table()
     assert {"department", "theme", "kind", "share_of_dept"} <= set(out.columns)
     assert (out["kind"] != "unlabelled").all()
+
+
+def test_load_dashboard_data_numbers_rows_within_split(processed_dir):
+    df = load_dashboard_data(processed_dir=processed_dir)
+    assert df[SPLIT_ROW_COL].tolist() == [0, 1, 0]
+
+
+@pytest.fixture
+def tagged_split():
+    df = pd.DataFrame({
+        SPLIT_COL: ["train"] * 4 + ["val"],
+        SPLIT_ROW_COL: [0, 1, 2, 3, 0],
+        "Review Text": ["runs small", "lovely", "too tight", "meh", "val review"],
+        LABEL_COL: ["negative", "positive", "negative", "neutral", "positive"],
+    })
+    assignments = pd.DataFrame({
+        "row": [3, 0, 1, 2],  # order of the file must not matter
+        "topic": [7, 3, -1, 3],
+        "text_digest": [text_digest("meh"), text_digest("runs small"), text_digest("lovely"), text_digest("too tight")],
+    })
+    labels = pd.DataFrame({"topic": [3], "theme": ["sizing"], "kind": ["sizing-fit"]})
+    return df, assignments, labels
+
+
+def test_attach_topics_joins_train_rows_only(tagged_split):
+    out = attach_topics(*tagged_split)
+    assert out["topic"].tolist()[:4] == [3, -1, 3, 7]
+    assert pd.isna(out["topic"].iloc[4])
+    assert out["theme"].tolist()[:3] == ["sizing", "unclustered", "sizing"]
+    assert pd.isna(out["theme"].iloc[3])  # topic 7 has no label
+    assert pd.isna(out["theme"].iloc[4])
+
+
+def test_attach_topics_rejects_count_mismatch(tagged_split):
+    df, assignments, labels = tagged_split
+    with pytest.raises(ValueError, match="cover 3 reviews but the training split has 4"):
+        attach_topics(df, assignments.iloc[:3], labels)
+
+
+def test_attach_topics_rejects_text_mismatch(tagged_split):
+    df, assignments, labels = tagged_split
+    df.loc[2, "Review Text"] = "different review"
+    with pytest.raises(ValueError, match="do not match"):
+        attach_topics(df, assignments, labels)
+
+
+def test_topic_sentiment_table(tagged_split):
+    out = topic_sentiment_table(attach_topics(*tagged_split))
+    assert out["topic"].tolist() == [3, 7]  # outlier and untagged rows left out
+    sizing = out.iloc[0]
+    assert sizing["reviews"] == 2
+    assert sizing["share_of_reviews"] == pytest.approx(2 / 3)
+    assert (sizing["negative"], sizing["neutral"], sizing["positive"]) == (1.0, 0.0, 0.0)
+    assert out.iloc[1]["theme"] == "unlabelled"
+    assert topic_sentiment_table(attach_topics(*tagged_split), min_reviews=2)["topic"].tolist() == [3]
+
+
+def test_topic_sentiment_table_empty(tagged_split):
+    df = attach_topics(*tagged_split)
+    assert topic_sentiment_table(df[df[SPLIT_COL] == "val"]).empty
+
+
+def test_load_topic_assignments_missing_file(tmp_path):
+    assert load_topic_assignments(tmp_path) is None

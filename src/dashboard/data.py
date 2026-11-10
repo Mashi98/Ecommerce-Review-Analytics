@@ -17,6 +17,8 @@ from pathlib import Path
 import pandas as pd
 
 from src.models.baseline import LABEL_COL, PROCESSED_DIR, SENTIMENT_LABELS, load_split
+from src.models.topics import text_digest
+from src.models.transformer import TEXT_COL_RAW
 
 REPORTS_DIR = Path(__file__).resolve().parents[2] / "reports"
 
@@ -27,6 +29,11 @@ CLASS_COL = "Class Name"
 AGE_COL = "Age"
 AGE_BAND_COL = "Age Band"
 SPLIT_COL = "split"
+SPLIT_ROW_COL = "split_row"
+TOPIC_COL = "topic"
+THEME_COL = "theme"
+KIND_COL = "kind"
+OUTLIER_TOPIC = -1
 
 AGE_BINS = [18, 25, 35, 45, 55, 65, 200]
 AGE_BAND_LABELS = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"]
@@ -63,6 +70,7 @@ def load_dashboard_data(
     for name in splits:
         part = load_split(name, processed_dir)
         part[SPLIT_COL] = name
+        part[SPLIT_ROW_COL] = range(len(part))
         frames.append(part)
     df = pd.concat(frames, ignore_index=True)
     for col in (DEPARTMENT_COL, CLASS_COL):
@@ -144,3 +152,81 @@ def load_topic_table(reports_dir: Path = REPORTS_DIR) -> pd.DataFrame:
     merged = topics.merge(labels, on="topic", how="left")
     merged["kind"] = merged["kind"].fillna("unlabelled")
     return merged
+
+
+def load_topic_assignments(reports_dir: Path = REPORTS_DIR) -> pd.DataFrame | None:
+    """Per-review merged topic for the training split, or None if not exported yet.
+
+    Written by `python -m scripts.topic_merge` (columns: row, topic, text_digest).
+    """
+    path = reports_dir / "topic_assignments.csv"
+    return pd.read_csv(path) if path.exists() else None
+
+
+def load_topic_labels(reports_dir: Path = REPORTS_DIR) -> pd.DataFrame:
+    """Hand-written theme and kind for each merged topic id."""
+    return pd.read_csv(reports_dir / "topic_labels.csv")[[TOPIC_COL, THEME_COL, KIND_COL]]
+
+
+def attach_topics(df: pd.DataFrame, assignments: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
+    """Add topic, theme and kind to the training rows of `df`.
+
+    Assignments key on a review's position within the training split and carry
+    a digest of its text; every training row must match on both, otherwise the
+    topic model was fit on different data and the join would mislabel reviews.
+    Validation rows get no topic (the model was fit on train only). Outliers
+    keep topic -1 and theme/kind "unclustered".
+    """
+    train = df[df[SPLIT_COL] == "train"]
+    if len(assignments) != len(train):
+        raise ValueError(
+            f"topic assignments cover {len(assignments)} reviews but the training split has {len(train)}; "
+            "re-run `python -m scripts.topic_merge`"
+        )
+    keyed = assignments.set_index("row")
+    expected = keyed["text_digest"].reindex(train[SPLIT_ROW_COL]).to_numpy()
+    actual = train[TEXT_COL_RAW].map(text_digest).to_numpy()
+    if (expected != actual).any():
+        raise ValueError(
+            "topic assignments do not match the training reviews' text; re-run `python -m scripts.topic_merge`"
+        )
+
+    out = df.copy()
+    out[TOPIC_COL] = pd.array([pd.NA] * len(out), dtype="Int64")
+    out.loc[train.index, TOPIC_COL] = keyed["topic"].reindex(train[SPLIT_ROW_COL]).to_numpy()
+    lookup = labels.set_index(TOPIC_COL)
+    out[THEME_COL] = out[TOPIC_COL].map(lookup[THEME_COL])
+    out[KIND_COL] = out[TOPIC_COL].map(lookup[KIND_COL])
+    is_outlier = out[TOPIC_COL] == OUTLIER_TOPIC
+    out.loc[is_outlier.fillna(False), [THEME_COL, KIND_COL]] = "unclustered"
+    return out
+
+
+def topic_sentiment_table(df: pd.DataFrame, min_reviews: int = 1) -> pd.DataFrame:
+    """Per theme: review count, share of clustered reviews, and sentiment mix.
+
+    Uses only rows with a real topic (outliers and untagged rows are left out).
+    Columns: topic, theme, kind, reviews, share_of_reviews, negative, neutral,
+    positive (within-theme shares, 0-1). Themes with fewer than `min_reviews`
+    reviews are dropped; rows are ordered by negative share, highest first.
+    """
+    columns = [TOPIC_COL, THEME_COL, KIND_COL, "reviews", "share_of_reviews", *SENTIMENT_LABELS]
+    tagged = df[df[TOPIC_COL].notna() & (df[TOPIC_COL] != OUTLIER_TOPIC)]
+    if tagged.empty:
+        return pd.DataFrame(columns=columns)
+    tagged = tagged.assign(**{THEME_COL: tagged[THEME_COL].fillna("unlabelled"),
+                              KIND_COL: tagged[KIND_COL].fillna("unlabelled")})
+    counts = (
+        tagged.groupby([TOPIC_COL, THEME_COL, KIND_COL])[LABEL_COL]
+        .value_counts()
+        .unstack(fill_value=0)
+        .reindex(columns=SENTIMENT_LABELS, fill_value=0)
+    )
+    totals = counts.sum(axis=1)
+    table = counts.div(totals, axis=0)
+    table.insert(0, "reviews", totals)
+    table.insert(1, "share_of_reviews", totals / len(tagged))
+    table = table[table["reviews"] >= min_reviews].reset_index()
+    table.columns.name = None
+    table[TOPIC_COL] = table[TOPIC_COL].astype(int)
+    return table.sort_values(["negative", "reviews"], ascending=[False, False], kind="stable")[columns].reset_index(drop=True)

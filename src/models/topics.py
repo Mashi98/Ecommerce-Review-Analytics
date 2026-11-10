@@ -274,6 +274,36 @@ def bertopic_topic_words(model, n_words: int = TOP_N_WORDS) -> list[list[str]]:
     ]
 
 
+def text_digest(text) -> str:
+    """Short, whitespace-insensitive fingerprint of a review's text.
+
+    Stored next to each exported topic assignment so a consumer can check it is
+    joining assignments onto the same reviews, in the same order, that the
+    topic model was fit on.
+    """
+    import hashlib
+
+    normalized = " ".join(str(text if isinstance(text, str) else "").split())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
+
+
+def topic_assignments(df: pd.DataFrame, topics: list[int], text_col: str = TEXT_COL_RAW) -> pd.DataFrame:
+    """One row per document: its position in `df`, its topic, and a text digest.
+
+    `topics` must be aligned with `df` row for row (as BERTopic's `topics_` is
+    with the docs it was fit on). Outliers keep topic -1.
+    """
+    if len(topics) != len(df):
+        raise ValueError(f"{len(topics)} topic assignments for {len(df)} documents")
+    return pd.DataFrame(
+        {
+            "row": range(len(df)),
+            "topic": [int(t) for t in topics],
+            "text_digest": [text_digest(t) for t in df[text_col]],
+        }
+    )
+
+
 def topic_summary(model, topics: list[int], n_words: int = TOP_N_WORDS) -> pd.DataFrame:
     """Per-topic size and top terms, largest first (outlier topic excluded)."""
     info = model.get_topic_info()

@@ -17,6 +17,8 @@ from src.models.topics import (
     build_dictionary,
     coherence_cv,
     lda_topic_words,
+    text_digest,
+    topic_assignments,
     tokenized_corpus,
     train_bertopic,
     train_lda,
@@ -223,3 +225,23 @@ def test_merge_similar_topics_passes_original_ids_to_bertopic():
     model = StubModel()
     assert merge_similar_topics(model, ["d"], min_similarity=0.9, max_topic_size=500) == [[1, 2]]
     assert model.merged == [[1, 2]]
+
+
+def test_text_digest_ignores_whitespace_and_handles_missing():
+    assert text_digest("runs  small\n") == text_digest("runs small")
+    assert text_digest("runs small") != text_digest("runs large")
+    assert text_digest(None) == text_digest("") == text_digest(float("nan"))
+    assert len(text_digest("x")) == 12
+
+
+def test_topic_assignments_aligns_rows():
+    df = pd.DataFrame({"Review Text": ["a", "b", "c"]})
+    out = topic_assignments(df, [3, -1, 0])
+    assert out["row"].tolist() == [0, 1, 2]
+    assert out["topic"].tolist() == [3, -1, 0]
+    assert out["text_digest"].tolist() == [text_digest(t) for t in "abc"]
+
+
+def test_topic_assignments_rejects_length_mismatch():
+    with pytest.raises(ValueError, match="2 topic assignments for 3 documents"):
+        topic_assignments(pd.DataFrame({"Review Text": ["a", "b", "c"]}), [1, 2])

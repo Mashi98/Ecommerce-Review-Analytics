@@ -14,6 +14,7 @@ Writes:
   reports/topic_models_merged.md           before/after, merged groups, topics, departments
   reports/topics_merged_by_department.csv
   reports/topic_samples.csv                sample reviews per merged topic, for the spot-check
+  reports/topic_assignments.csv            merged topic per training review (row, topic, text_digest)
 """
 
 from pathlib import Path
@@ -37,6 +38,7 @@ from src.models.topics import (
     coherence_cv,
     merge_similar_topics,
     tokenized_corpus,
+    topic_assignments,
     topic_summary,
     train_bertopic,
 )
@@ -158,7 +160,8 @@ def main() -> None:
     (REPORTS_DIR / "topic_models_merged.md").write_text("\n".join(lines), encoding="utf-8")
     breakdown.to_csv(REPORTS_DIR / "topics_merged_by_department.csv", index=False)
     sample_reviews(df, after_assignments, model).to_csv(REPORTS_DIR / "topic_samples.csv", index=False)
-    print("wrote reports/topic_models_merged.md, topics_merged_by_department.csv, topic_samples.csv")
+    topic_assignments(df, after_assignments).to_csv(REPORTS_DIR / "topic_assignments.csv", index=False)
+    print("wrote reports/topic_models_merged.md, topics_merged_by_department.csv, topic_samples.csv, topic_assignments.csv")
 
 
 if __name__ == "__main__":

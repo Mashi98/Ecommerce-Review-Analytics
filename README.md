@@ -34,7 +34,7 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 ├── reports/             # generated reports, tables and topic labels
 │   └── figures/         # architecture diagram and other plots
 ├── docs/                # milestone docs, results draft, reproducibility checklist, Colab guide
-├── tests/               # unit tests, mirrors src/ (138 passing)
+├── tests/               # unit tests, mirrors src/ (148 passing)
 ├── requirements.txt     # unpinned dependency names
 └── requirements-lock.txt  # exact versions used for the reported results
 ```
@@ -72,7 +72,7 @@ Milestone 2 (technical checkpoint) work is complete apart from the demo video an
 | Topic extraction (LDA vs BERTopic, merged and hand-labeled) | Done, `reports/topic_models_merged.md` |
 | System architecture diagram | Done, `reports/figures/architecture.png` |
 | Reproducibility checklist | Drafted, `docs/reproducibility.md` |
-| Streamlit dashboard | In progress, `app/dashboard.py` (sentiment by segment, topics by department, classify a review) |
+| Streamlit dashboard | In progress, `app/dashboard.py` (sentiment by segment, themes by sentiment, topics by department, classify a review) |
 | Test-set evaluation | Not run yet: the test split is held out for one final evaluation |
 
 ### Results so far (validation split, 3,417 reviews)
