@@ -22,17 +22,19 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 ├── data/
 │   ├── raw/            # original dataset (gitignored — see Dataset section)
 │   └── processed/      # cleaned/feature-engineered data (gitignored)
+├── app/                 # Streamlit dashboard (streamlit run app/dashboard.py)
 ├── notebooks/           # exploratory analysis and experiments
 ├── src/
 │   ├── data/            # loading, cleaning, stratified splits
 │   ├── features/        # text preprocessing, TF-IDF vectorization
 │   ├── models/          # baseline, DistilBERT, LDA and BERTopic
+│   ├── dashboard/       # data preparation for the dashboard
 │   └── evaluation/      # metrics, topic coherence, error analysis
 ├── scripts/             # runnable analyses (error analysis, topic sweep/merge, predict_review, diagram)
 ├── reports/             # generated reports, tables and topic labels
 │   └── figures/         # architecture diagram and other plots
 ├── docs/                # milestone docs, results draft, reproducibility checklist, Colab guide
-├── tests/               # unit tests, mirrors src/ (124 passing)
+├── tests/               # unit tests, mirrors src/ (138 passing)
 ├── requirements.txt     # unpinned dependency names
 └── requirements-lock.txt  # exact versions used for the reported results
 ```
@@ -70,7 +72,7 @@ Milestone 2 (technical checkpoint) work is complete apart from the demo video an
 | Topic extraction (LDA vs BERTopic, merged and hand-labeled) | Done, `reports/topic_models_merged.md` |
 | System architecture diagram | Done, `reports/figures/architecture.png` |
 | Reproducibility checklist | Drafted, `docs/reproducibility.md` |
-| Streamlit dashboard | Planned |
+| Streamlit dashboard | In progress, `app/dashboard.py` (sentiment by segment, topics by department, classify a review) |
 | Test-set evaluation | Not run yet: the test split is held out for one final evaluation |
 
 ### Results so far (validation split, 3,417 reviews)
@@ -90,4 +92,10 @@ DistilBERT results vary by about 0.006 macro-F1 between runs of the same setting
 python -m scripts.predict_review "I love this top, but it runs small so I sent it back."
 ```
 
-This trains the baseline and shows the predicted class, probabilities and the words that drove the prediction. DistilBERT is trained on Colab and its weights are not in the repository. Every other result can be regenerated with the commands in [`docs/reproducibility.md`](docs/reproducibility.md).
+Or open the dashboard (train and validation splits only; the test split stays held out):
+
+```bash
+streamlit run app/dashboard.py
+```
+
+`predict_review` trains the baseline and shows the predicted class, probabilities and the words that drove the prediction. DistilBERT is trained on Colab and its weights are not in the repository. Every other result can be regenerated with the commands in [`docs/reproducibility.md`](docs/reproducibility.md).
