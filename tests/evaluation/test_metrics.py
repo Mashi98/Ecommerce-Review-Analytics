@@ -5,6 +5,7 @@ from src.evaluation.metrics import (
     classification_metrics,
     confusion_matrix_df,
     evaluate,
+    paired_bootstrap,
     per_class_report,
 )
 
@@ -74,3 +75,36 @@ def test_evaluate_collects_all_sections():
     assert result["summary"]["accuracy"] == pytest.approx(2 / 3)
     assert isinstance(result["per_class"], pd.DataFrame)
     assert len(result["predictions"]) == 3
+
+
+def test_paired_bootstrap_identical_models_has_zero_delta(y_pair):
+    y_true, y_pred = y_pair
+    out = paired_bootstrap(y_true, y_pred, y_pred, LABELS, n_boot=200)
+    assert out["delta"] == 0.0
+    assert out["ci_low"] == out["ci_high"] == 0.0
+    assert out["share_b_not_better"] == 1.0  # B never strictly beats an identical A
+
+
+def test_paired_bootstrap_clearly_better_model():
+    import numpy as np
+    rng = np.random.default_rng(0)
+    y_true = rng.choice(LABELS, size=600).tolist()
+    perfect = list(y_true)
+    noisy = [y if rng.random() > 0.4 else rng.choice(LABELS) for y in y_true]
+    out = paired_bootstrap(y_true, noisy, perfect, LABELS, n_boot=300)
+    assert out["delta"] > 0.2
+    assert 0 < out["ci_low"] < out["delta"] < out["ci_high"] <= 1
+    assert out["share_b_not_better"] == 0.0
+
+
+def test_paired_bootstrap_is_seeded(y_pair):
+    y_true, y_pred = y_pair
+    a = paired_bootstrap(y_true, y_pred, y_true, LABELS, n_boot=100, seed=7)
+    b = paired_bootstrap(y_true, y_pred, y_true, LABELS, n_boot=100, seed=7)
+    assert a == b
+
+
+def test_paired_bootstrap_rejects_length_mismatch(y_pair):
+    y_true, y_pred = y_pair
+    with pytest.raises(ValueError, match="same length"):
+        paired_bootstrap(y_true, y_pred[:-1], y_pred, LABELS)

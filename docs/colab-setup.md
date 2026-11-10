@@ -18,9 +18,13 @@ re-runs, so it always trains against the committed `src/`, not a stale copy.
 
 ## Getting the splits in
 
-**Option B, direct upload, is the default.** Run the upload cell and pick all
-three files from `data/processed/`. No Drive access needed; the cost is
-re-uploading ~12 MB every session.
+**Option A, Google Drive, is the default** (`USE_DRIVE = True`), because the run
+has to mount Drive anyway to save the model. Put the three files in
+`MyDrive/capstone/processed` once; change `DRIVE_SPLITS` if you use another folder.
+
+**Option B, direct upload**, is there if you set `USE_DRIVE = False`: run the
+upload cell and pick all three files from `data/processed/`. `train.csv` is the
+large one and the one the Colab uploader handles worst; let all three finish.
 
 | File | Size | SHA-256 (first 12) |
 |---|---|---|
@@ -28,39 +32,57 @@ re-uploading ~12 MB every session.
 | `val.csv` | 1,880,376 bytes | `93bdaac4cc2b` |
 | `test.csv` | 1,860,211 bytes | `efd47d8954e7` |
 
-`train.csv` is the large one and the one the Colab uploader handles worst — let
-all three finish before moving on.
-
-**Option A, Google Drive**, is there if you would rather not re-upload each
-session: put the three files in `MyDrive/capstone/processed`, uncomment that
-cell, and skip the upload cell. Change `DRIVE_SPLITS` if you use another folder.
-
 Either way the **verify cell** re-hashes all three against the table above and
 stops with a `ValueError` if anything differs. If it fires, the upload is the
 problem, not the code.
 
-## Running it
+## Saving the model (section 4b, straight after training)
 
-Run the cells in order. One gate worth knowing about: **`RUN_TEST_EVAL` stays
-`False`.** The test split has been untouched through all model selection; flip
-it to `True` exactly once, for the final number that goes in the report.
+The Milestone 2 run's weights were lost: saving was the last cell, and the
+session reset before it ran. The save now happens immediately after training,
+before validation or test scoring, into one Drive folder for the whole run:
 
-## Saving the model
+```
+MyDrive/capstone/final-run/
+  model/                            weights + tokenizer
+  run_info.json                     date, git commit, GPU, versions, best checkpoint
+  val_preds_distilbert_final.csv    written in section 5
+  test_preds_distilbert.csv         written in section 6
+```
 
-The save cell mounts Drive **for the save only**, independently of how the
-splits arrived, and writes to `MyDrive/capstone/distilbert-sentiment/`.
+The cell stops if Drive is not actually mounted (an unmounted
+`/content/drive/...` is an ordinary folder on the VM that vanishes at disconnect,
+with nothing in the output to say so) and if `final-run/model/` already exists,
+so a later session cannot silently overwrite the final model.
 
-This matters more than it looks. The Colab VM is ephemeral, and with Drive
-unmounted `/content/drive/MyDrive/...` is just an ordinary directory on that
-VM's disk — `trainer.save_model()` would create it, print `saved to
-/content/drive/...`, and the weights would be gone at disconnect, with nothing
-in the output suggesting anything went wrong. The cell therefore refuses to save
-unless the mount is actually live.
+## The final test evaluation (section 6)
 
-Weights are gitignored; they live in Drive, not the repo.
+The test split has been untouched through all model selection. The procedure,
+done once:
 
-Record the output of the last cell for the reproducibility checklist: GPU name,
-library versions, hyperparameters and seed.
+1. Run sections 1 to 5 as normal. Check the validation macro-F1 is in the
+   expected range (the Milestone 2 runs gave 0.676 and 0.682).
+2. Set `RUN_TEST_EVAL = True` in section 6 and run that cell. It scores
+   DistilBERT on the test set, writes `test_preds_distilbert.csv` to `final-run/`,
+   prints the test metrics, and downloads both prediction CSVs. It refuses to run
+   if that file already exists.
+3. Put the two downloaded CSVs in `reports/` in the repo, then run locally:
+
+   ```
+   python -m scripts.test_evaluation
+   ```
+
+   This checks every prediction row lines up with the local val and test splits
+   (by a digest of the review text), retrains the baseline and checks it still
+   gives its reported 0.6245 validation macro-F1, scores the baseline on the test
+   set, and writes `reports/test_results.md` with both models' test results and
+   a paired bootstrap interval for the difference.
+
+The baseline is scored locally rather than in Colab so its test number comes from
+the pinned environment and can be reproduced on any machine.
+
+Record the output of the last cell for the reproducibility checklist; the same
+details are in `final-run/run_info.json`.
 
 ## Pinned versions
 

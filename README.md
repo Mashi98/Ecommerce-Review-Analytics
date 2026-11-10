@@ -34,7 +34,7 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 ├── reports/             # generated reports, tables and topic labels
 │   └── figures/         # architecture diagram and other plots
 ├── docs/                # milestone docs, results draft, reproducibility checklist, Colab guide
-├── tests/               # unit tests, mirrors src/ (148 passing)
+├── tests/               # unit tests, mirrors src/ (160 passing)
 ├── requirements.txt     # unpinned dependency names
 └── requirements-lock.txt  # exact versions used for the reported results
 ```
