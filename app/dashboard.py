@@ -38,6 +38,7 @@ from src.models.baseline import SENTIMENT_LABELS, load_split, train_baseline  # 
 
 SENTIMENT_COLORS = {"negative": "#c2410c", "neutral": "#a1a1aa", "positive": "#0f766e"}
 SENTIMENT_SCALE = alt.Scale(domain=SENTIMENT_LABELS, range=[SENTIMENT_COLORS[s] for s in SENTIMENT_LABELS])
+LABEL_LIMIT = 400  # px; Vega-Lite truncates axis labels at 180 by default, longest theme is ~300
 
 st.set_page_config(page_title="Review Analytics", layout="wide")
 
@@ -91,7 +92,7 @@ def sentiment_chart(table, segment_label):
         alt.Chart(table)
         .mark_bar()
         .encode(
-            y=alt.Y("segment:N", sort=None, title=segment_label),
+            y=alt.Y("segment:N", sort=None, title=segment_label, axis=alt.Axis(labelLimit=LABEL_LIMIT)),
             x=alt.X("share:Q", stack="normalize", axis=alt.Axis(format="%"), title="Share of reviews"),
             color=alt.Color("sentiment:N", scale=SENTIMENT_SCALE, sort=SENTIMENT_LABELS, title=None),
             order=alt.Order("sentiment_order:Q"),
@@ -153,7 +154,7 @@ def theme_sentiment_section(df):
         alt.Chart(long)
         .mark_bar()
         .encode(
-            y=alt.Y("theme:N", sort=order, title=None),
+            y=alt.Y("theme:N", sort=order, title=None, axis=alt.Axis(labelLimit=LABEL_LIMIT)),
             x=alt.X("share:Q", stack="normalize", axis=alt.Axis(format="%"), title="Share of the theme's reviews"),
             color=alt.Color("sentiment:N", scale=SENTIMENT_SCALE, sort=SENTIMENT_LABELS, title=None),
             order=alt.Order("sentiment_order:Q"),
@@ -195,7 +196,7 @@ def topics_tab(df, departments, has_topics):
             alt.Chart(rows)
             .mark_bar(color="#0f766e")
             .encode(
-                y=alt.Y("theme:N", sort="-x", title=None),
+                y=alt.Y("theme:N", sort="-x", title=None, axis=alt.Axis(labelLimit=LABEL_LIMIT)),
                 x=alt.X("share_of_dept:Q", title="% of department reviews"),
                 tooltip=["theme", "kind", "top_words", alt.Tooltip("reviews:Q", format=","),
                          alt.Tooltip("share_of_dept:Q", title="% of dept")],
