@@ -60,7 +60,7 @@ The 3,386-review test split was scored once by each model, after all model and s
 
 ## 2. Error analysis
 
-Computed on the validation split only (`reports/error_analysis_baseline.md`, `reports/error_analysis_distilbert.md`). The DistilBERT figures in this section are from the Milestone 2 run (580 errors, `reports/val_preds_distilbert.csv`), not the final run (585 errors); the two differ by five errors and the patterns below are not expected to change. A test-set error analysis is still to be done.
+Computed on the validation split only (`reports/error_analysis_baseline.md`, `reports/error_analysis_distilbert.md`). The DistilBERT figures in this section are from the Milestone 2 run (580 errors, `reports/val_preds_distilbert.csv`), not the final run (585 errors); the two differ by five errors and the patterns below are not expected to change. Section 2.6 repeats the analysis on the test set.
 
 ### 2.1 Where the models disagree
 
@@ -105,6 +105,47 @@ Sentiment is derived from the rating, so some "errors" are label disagreements r
 ### 2.5 Review length and product group
 
 For the baseline, the error rate rises with review length, from 15% at 20 words or fewer to 27% above 100 words; longer reviews mix more opinions. The two departments with the most reviews differ little (Dresses 21.6%, Tops 20.0% for the baseline), so department is not a major driver of difficulty. The class with the highest error rate, Swim (35%), has only 57 validation reviews and should not be over-read.
+
+### 2.6 Test-set error analysis
+
+The same breakdown on the test split, for the final DistilBERT run and the baseline (`reports/error_analysis_distilbert_test.md`, `reports/error_analysis_baseline_test.md`). This is descriptive only: nothing was refit or tuned on it. The validation-set patterns in 2.1 to 2.5 hold.
+
+| Outcome (test) | Reviews |
+|---|---|
+| Both right | 2,478 |
+| Only DistilBERT right | 322 |
+| Only baseline right | 207 |
+| Both wrong | 379 |
+
+DistilBERT makes 586 errors against 701 for the baseline (net +115). The 379 shared errors are 54% of the baseline's.
+
+| Error | Baseline | DistilBERT |
+|---|---|---|
+| positive → neutral | 244 | 229 |
+| neutral → negative | 131 | 135 |
+| negative → neutral | 98 | 98 |
+| neutral → positive | 93 | 70 |
+| positive → negative | 90 | 34 |
+| negative → positive | 45 | 20 |
+
+As on validation, the gain is concentrated in the opposite-polarity mistakes (positive → negative down 62%, negative → positive down 56%), while the errors involving neutral barely move. Neutral → negative is the one type that got slightly worse (131 to 135). Positive → neutral is the largest error for both models, 39% of DistilBERT's test errors.
+
+| Rating | Baseline error | DistilBERT error |
+|---|---|---|
+| 1 | 27.6% | 20.3% |
+| 2 | 46.8% | 39.9% |
+| 3 | 53.3% | 48.8% |
+| 4 | 28.6% | 28.4% |
+| 5 | 6.6% | 2.9% |
+
+Again the middle of the scale is hardest: 3-star reviews are nearly a coin flip even for DistilBERT, and 4-star reviews are misclassified 28% of the time by both models. Reading the samples shows the same two label-noise patterns as on validation:
+
+- **Praise plus a fit complaint, rated 4 or 5, predicted neutral.** "I loved the jumpsuit but unfortunately had to return it due to running a little on the small size" is labelled positive by its 5 stars; the text is mixed.
+- **3-star reviews that read as negative.** "...the fabric felt super cheap... not in a good way. returned." and "...it definitely goes back!" are labelled neutral, and the model's "negative" is arguably the better reading of the text.
+
+Length and product group behave as on validation. The error rate rises with review length (9.4% at 20 words or fewer, 20.5% above 100) and varies little across the five departments (14.9% to 19.0%). Class-level differences (for example Jeans 20.5%) rest on small groups and are not interpreted.
+
+**What this means for the report.** The remaining errors are dominated by the neutral class and the 3-to-4-star boundary, where the rating-derived label is itself ambiguous. Further model gains on this label definition are likely to be small; a different label scheme (for example using review text to define "mixed") would be a different task.
 
 ## 3. Topic and issue extraction
 

@@ -1,7 +1,8 @@
-"""Error analysis driver: where does a sentiment model go wrong on validation?
+"""Error analysis driver: where does a sentiment model go wrong?
 
-Runs on the validation split only — the test set is reserved for the single
-final evaluation. With no arguments it fits the TF-IDF + LogReg baseline on
+By default runs on the validation split. `--split test` analyses saved test
+predictions after the single final evaluation (predictions must be supplied with
+`--preds`; nothing is refit or tuned on test). With no arguments it fits the TF-IDF + LogReg baseline on
 train and analyses its validation predictions. To analyse another model
 (DistilBERT), save its validation predictions from Colab as a CSV with a
 `predicted` column, one row per row of `load_split("val")` and in the same
@@ -87,10 +88,12 @@ def load_predictions(path: Path, n_rows: int) -> list[str]:
     return preds["predicted"].tolist()
 
 
-def render_report(name: str, frame: pd.DataFrame, other: pd.DataFrame | None, other_name: str | None) -> str:
+def render_report(
+    name: str, frame: pd.DataFrame, other: pd.DataFrame | None, other_name: str | None, split: str = "validation"
+) -> str:
     y_true, y_pred = frame["true"].tolist(), frame["predicted"].tolist()
     summary = classification_metrics(y_true, y_pred, SENTIMENT_LABELS)
-    lines = [f"# Error analysis — {name} (validation split)", ""]
+    lines = [f"# Error analysis — {name} ({split} split)", ""]
     lines.append(
         f"{len(frame)} reviews, {int((~frame['correct']).sum())} misclassified. "
         + ", ".join(f"{k} {v:.4f}" for k, v in summary.items())
@@ -141,12 +144,15 @@ def render_report(name: str, frame: pd.DataFrame, other: pd.DataFrame | None, ot
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--preds", type=Path, help="CSV with a 'predicted' column in validation row order")
+    parser.add_argument("--preds", type=Path, help="CSV with a 'predicted' column in split row order")
+    parser.add_argument("--split", choices=["val", "test"], default="val", help="split the predictions are for")
     parser.add_argument("--name", default="baseline", help="label used in report and file names")
     parser.add_argument("--against", help="name of an earlier run to compare row-by-row")
     args = parser.parse_args()
 
-    val_df = load_split("val")
+    if args.split == "test" and not args.preds:
+        parser.error("--split test needs --preds (the baseline is not refit for test analysis)")
+    val_df = load_split(args.split)
     proba = None
     if args.preds:
         y_pred = load_predictions(args.preds, len(val_df))
@@ -163,7 +169,7 @@ def main() -> None:
 
     REPORTS_DIR.mkdir(exist_ok=True)
     (REPORTS_DIR / f"error_analysis_{args.name}.md").write_text(
-        render_report(args.name, frame, other, args.against), encoding="utf-8"
+        render_report(args.name, frame, other, args.against, "test" if args.split == "test" else "validation"), encoding="utf-8"
     )
     keep = ["Rating", "Department Name", "Class Name", TEXT_COL_RAW, "true", "predicted", "correct"]
     if CONFIDENCE_COL in frame:
