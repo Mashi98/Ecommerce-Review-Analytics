@@ -1,6 +1,6 @@
 # Results draft (Milestone 2 / final report)
 
-Working draft of the results and error-analysis sections. Every number is from a file in `reports/` or from the validation split. The test set has not been used for anything: the Milestone 2 results are validation results (section 1.2 explains why).
+Working draft of the results and error-analysis sections. Every number is from a file in `reports/`. Validation results (1.1) and the single test-set evaluation (1.2) both use the final DistilBERT run, whose weights are saved. Section 2 (error analysis) is on validation predictions from the earlier Milestone 2 run (see its note).
 
 ## 1. Sentiment classification
 
@@ -23,27 +23,44 @@ DistilBERT is given raw text because its subword tokenizer uses the words that l
 | | Accuracy | Macro-F1 | Weighted-F1 |
 |---|---|---|---|
 | TF-IDF + LogReg | 0.7951 | 0.6245 | 0.8083 |
-| DistilBERT | 0.8303 | **0.6823** | 0.8426 |
+| DistilBERT (final run) | 0.8288 | **0.6785** | 0.8411 |
+
+The final run (585 validation errors) replaces the Milestone 2 run (0.8303 / 0.6823, 580 errors) as the reported model, because its weights were saved and it can be scored on the test set. The two runs differ by 0.004 macro-F1, within the run-to-run noise noted below.
 
 | Class | Baseline P / R / F1 | DistilBERT P / R / F1 | Support |
 |---|---|---|---|
-| negative | 0.514 / 0.617 / 0.561 | 0.621 / 0.673 / 0.646 | 358 |
-| neutral | 0.359 / 0.467 / 0.406 | 0.405 / 0.563 / 0.472 | 426 |
-| positive | 0.945 / 0.872 / 0.907 | 0.967 / 0.895 / 0.929 | 2,633 |
+| negative | 0.514 / 0.617 / 0.561 | 0.605 / 0.682 / 0.641 | 358 |
+| neutral | 0.359 / 0.467 / 0.406 | 0.403 / 0.549 / 0.465 | 426 |
+| positive | 0.945 / 0.872 / 0.907 | 0.967 / 0.894 / 0.929 | 2,633 |
 
-DistilBERT improves every class, and macro-F1 by 0.058. Most of the gain is on the minority classes (negative +0.085 F1, neutral +0.066), which is what macro-F1 rewards. The neutral class stays weak for both models.
+DistilBERT improves every class, and macro-F1 by 0.054. Most of the gain is on the minority classes (negative +0.080 F1, neutral +0.059), which is what macro-F1 rewards. The neutral class stays weak for both models.
 
-### 1.2 Test set: not evaluated at Milestone 2
+### 1.2 Test results (evaluated once)
 
-The 3,386-review test split has not been scored by either model. The reported DistilBERT run (580 validation errors) was trained in a Colab session whose weights were not retained, so it cannot be scored on the test set afterwards. Its validation predictions were exported (`reports/val_preds_distilbert.csv`), which is why every number in this document can still be reproduced from files in the repository.
+The 3,386-review test split was scored once by each model, after all model and setting choices were made on validation. DistilBERT predictions come from the final Colab run (weights, run info and predictions saved to Drive); the baseline was retrained locally and first checked to reproduce its validation macro-F1 of 0.6245. Every prediction row was matched to the local split by a digest of the review text. Source: `reports/test_results.md`.
 
-Retraining to obtain a model that could be scored would not reproduce the reported run (see the note below), so the validation numbers above are the Milestone 2 result. They are slightly optimistic as an estimate of unseen-data performance, because the best DistilBERT checkpoint was chosen on validation macro-F1 and the baseline settings were tuned against the same split. The test split is untouched. The planned single evaluation of both models on it moves to the final report, run with a model whose weights and test predictions are saved at the time.
+| | Accuracy | Macro-F1 | Weighted-F1 |
+|---|---|---|---|
+| TF-IDF + LogReg | 0.7930 | 0.6182 | 0.8059 |
+| DistilBERT | 0.8269 | **0.6670** | 0.8379 |
 
-> Note for the reproducibility section: DistilBERT training on a GPU is not bit-reproducible even with a fixed seed. Two runs with identical settings gave 586 and 580 validation errors (macro-F1 0.676 and 0.682). The reported figures are from the 580-error run; the second run is a measure of run-to-run noise, about 0.006 macro-F1.
+| Class | Baseline P / R / F1 | DistilBERT P / R / F1 | Support |
+|---|---|---|---|
+| negative | 0.491 / 0.598 / 0.539 | 0.585 / 0.668 / 0.624 | 356 |
+| neutral | 0.364 / 0.467 / 0.409 | 0.397 / 0.512 / 0.447 | 420 |
+| positive | 0.943 / 0.872 / 0.906 | 0.963 / 0.899 / 0.930 | 2,610 |
+
+**Is the gain real?** A paired bootstrap over test reviews (2,000 resamples) gives a DistilBERT minus baseline macro-F1 of **+0.0488, 95% interval [+0.0249, +0.0741]**. DistilBERT beat the baseline in every resample. The interval excludes zero, but its lower end (+0.025) is about half the point estimate, so the size of the gain is uncertain even though its sign is not.
+
+**Validation to test.** Macro-F1 falls by 0.006 for the baseline (0.6245 to 0.6182) and 0.012 for DistilBERT (0.6785 to 0.6670). The small drops fit the expectation that selection on validation made those numbers slightly optimistic; there is no sign of serious overfitting to it. The test numbers are the ones to quote.
+
+**By class.** The pattern matches validation. DistilBERT's gains are largest on negative (F1 +0.085) and positive (+0.024); neutral improves least (+0.038) and remains the weakest class for both models. Looking at the confusion matrices, DistilBERT cuts positive reviews wrongly called negative from 90 to 34 and negative reviews wrongly called positive from 45 to 20, but neutral errors barely move (negative to neutral 98 in both; positive to neutral 244 to 229).
+
+> Note for the reproducibility section: DistilBERT training on a GPU is not bit-reproducible even with a fixed seed. Three runs with identical settings gave macro-F1 0.676 and 0.682 (Milestone 2) and 0.6785 (final), about 0.006 of run-to-run noise. The Milestone 2 weights were lost; the final run's are saved.
 
 ## 2. Error analysis
 
-Computed on the validation split only (`reports/error_analysis_baseline.md`, `reports/error_analysis_distilbert.md`).
+Computed on the validation split only (`reports/error_analysis_baseline.md`, `reports/error_analysis_distilbert.md`). The DistilBERT figures in this section are from the Milestone 2 run (580 errors, `reports/val_preds_distilbert.csv`), not the final run (585 errors); the two differ by five errors and the patterns below are not expected to change. A test-set error analysis is still to be done.
 
 ### 2.1 Where the models disagree
 
@@ -127,10 +144,10 @@ Most of what unsupervised topic modelling finds in this corpus is *what the prod
 
 ## 5. Limitations (to expand)
 
-- No test-set result yet (section 1.2). The headline numbers are validation numbers, and the model was selected on that split.
-- The reported DistilBERT weights were not retained, so that exact run cannot be re-scored; its validation predictions are saved in `reports/val_preds_distilbert.csv`.
+- The test split was used once, as planned, and cannot be reused for further tuning without invalidating it. Validation numbers are slightly optimistic because the model and baseline settings were chosen on that split.
+- The Milestone 2 DistilBERT weights were lost, so section 2 error analysis rests on that run's saved validation predictions while the reported model is the final run.
 - Sentiment labels come from star ratings; the neutral class and the 4-star boundary are partly label noise.
-- A single stratified split; DistilBERT results vary by about 0.006 macro-F1 between runs of the same settings, and no confidence intervals have been computed.
+- A single stratified split; DistilBERT results vary by about 0.006 macro-F1 between runs of the same settings. The only confidence interval computed is the paired bootstrap on the test-set difference, and it reflects test-sample noise, not training-run noise.
 - 32% of reviews are BERTopic outliers and are excluded from every topic statistic.
 - Topic labels are one reader's judgement and have not been checked by a second reader.
 - The dataset is one retailer's women's clothing reviews; results may not carry over to other categories.
