@@ -4,6 +4,7 @@
 **Student:** Imasha Sithumini
 **Title:** *Customer Review Analytics for E-Commerce: Sentiment Classification and Unsupervised Issue Discovery from Review Text*
 **Code:** <https://github.com/Mashi98/Ecommerce-Review-Analytics> (branch `main`, commit `1da6a45`)
+**Demo video:** <https://youtu.be/lpoEYNM0JIc>
 
 ---
 
@@ -16,7 +17,7 @@
 | Baseline and improved method implemented | Done, and compared on validation and test | Sections 4 and 5 |
 | System architecture diagram | Done | Section 6 |
 | Code or system link | Done | Header; repository structure in Section 7 |
-| Demo video (max 6 minutes) | Not part of this document | n/a |
+| Demo video (max 6 minutes) | Done | Header: https://youtu.be/lpoEYNM0JIc |
 
 **Headline result.** A fine-tuned DistilBERT improves three-class sentiment macro-F1 over a TF-IDF + logistic regression baseline from **0.618 to 0.667 on the held-out test set** (paired bootstrap difference +0.049, 95% interval [+0.025, +0.074]). Both models are weakest on the neutral class, and the error analysis traces that to the labels as much as to the models. Alongside this, BERTopic and LDA topic models were fitted and compared on coherence, and 45 BERTopic topics were hand-labelled.
 
