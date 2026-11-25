@@ -2,7 +2,7 @@
 
 Everything here was read from the code, the environment or a file in the repository, and the claims marked **verified** were re-run on 2026-10-29. The final DistilBERT run and the test evaluation (2026-11-23) are recorded in sections 2, 3, 9 and 10. Where a result cannot be reproduced exactly, this document says so (section 8).
 
-Code state: the final DistilBERT run was trained from commit `b6a3069dc3c2` on `main`, <https://github.com/Mashi98/Ecommerce-Review-Analytics>. The test suite passes (160 tests, `pytest`).
+Code state: the final DistilBERT run was trained from commit `b6a3069dc3c2` on `main`, <https://github.com/Mashi98/Ecommerce-Review-Analytics>. The test suite passes (139 tests, `pytest`).
 
 ## 1. Summary
 
@@ -134,7 +134,7 @@ Which model sees which text:
 | Splits | `python -m src.data.split` | `data/processed/*.csv` |
 | Baseline validation metrics and error analysis | `python -m scripts.error_analysis` | `reports/error_analysis_baseline.md` and `_rows.csv` |
 | Topic model sweep and comparison | `python -m scripts.topic_sweep` | `reports/topic_models.md`, `topic_model_sweep.csv`, `topics_by_department.csv` |
-| Merged topics and labels | `python -m scripts.topic_merge` | `reports/topic_models_merged.md`, `topic_samples.csv`, `topics_merged_by_department.csv`, `topic_assignments.csv` (per-review topic, read by the dashboard) |
+| Merged topics and labels | `python -m scripts.topic_merge` | `reports/topic_models_merged.md`, `topic_samples.csv`, `topics_merged_by_department.csv`, `topic_assignments.csv` (per-review topic) |
 | DistilBERT (final run) | Colab: `notebooks/02_distilbert_colab.ipynb` on a T4 (see `docs/colab-setup.md`); sections 1 to 5 | model and `run_info.json` on Drive; `reports/val_preds_distilbert_final.csv` |
 | DistilBERT test scoring | Same notebook, section 6 (once) | `reports/test_preds_distilbert.csv` |
 | Final test evaluation | `python -m scripts.test_evaluation` | `reports/test_results.md`, `reports/test_preds_baseline.csv` |
@@ -142,7 +142,7 @@ Which model sees which text:
 | DistilBERT validation error analysis | `python -m scripts.error_analysis --preds reports/val_preds_distilbert.csv --name distilbert --against baseline` (Milestone 2 run); `--preds reports/val_preds_distilbert_final.csv --name distilbert_final --against baseline` (final run) | `reports/error_analysis_distilbert*.md` and `_rows.csv` |
 | Try the baseline on your own review text | `python -m scripts.predict_review "review text"` (about 20 s: trains the baseline, then predicts) | printed prediction and driving words |
 | Architecture diagram | `python -m scripts.architecture_diagram` | `reports/figures/architecture.png`, `.svg` |
-| Unit tests | `pytest` | 160 passed |
+| Unit tests | `pytest` | 139 passed |
 
 ## 10. Known limits on exact reproducibility
 

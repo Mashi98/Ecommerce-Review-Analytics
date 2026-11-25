@@ -22,13 +22,11 @@ See [`docs/milestone-1-project-definition.md`](docs/milestone-1-project-definiti
 ├── data/
 │   ├── raw/            # original dataset (gitignored — see Dataset section)
 │   └── processed/      # cleaned/feature-engineered data (gitignored)
-├── app/                 # Streamlit dashboard (streamlit run app/dashboard.py)
 ├── notebooks/           # exploratory analysis and experiments
 ├── src/
 │   ├── data/            # loading, cleaning, stratified splits
 │   ├── features/        # text preprocessing, TF-IDF vectorization
 │   ├── models/          # baseline, DistilBERT, LDA and BERTopic
-│   ├── dashboard/       # data preparation for the dashboard
 │   └── evaluation/      # metrics, topic coherence, error analysis
 ├── scripts/             # runnable analyses (error analysis, topic sweep/merge, predict_review, diagram)
 ├── reports/             # generated reports, tables and topic labels
@@ -60,7 +58,7 @@ pytest
 
 ## Status
 
-Milestone 2 (technical checkpoint) work is complete apart from the demo video and submission. Milestone 3 work is the Streamlit dashboard and the final report.
+The technical work for Milestone 2 is complete, including the one-time test-set evaluation. Remaining: the demo video and the final report.
 
 | Component | State |
 |---|---|
@@ -68,21 +66,22 @@ Milestone 2 (technical checkpoint) work is complete apart from the demo video an
 | EDA | Done, `notebooks/01_eda.ipynb` |
 | Sentiment baseline (TF-IDF + logistic regression) | Done |
 | Improved sentiment model (fine-tuned DistilBERT, Colab T4) | Done, `notebooks/02_distilbert_colab.ipynb` |
-| Error analysis (both models, validation split) | Done, `reports/error_analysis_*.md` |
+| Error analysis (both models, validation and test splits) | Done, `reports/error_analysis_*.md` |
 | Topic extraction (LDA vs BERTopic, merged and hand-labeled) | Done, `reports/topic_models_merged.md` |
 | System architecture diagram | Done, `reports/figures/architecture.png` |
 | Reproducibility checklist | Drafted, `docs/reproducibility.md` |
-| Streamlit dashboard | In progress, `app/dashboard.py` (sentiment by segment, themes by sentiment, topics by department, classify a review) |
-| Test-set evaluation | Not run yet: the test split is held out for one final evaluation |
+| Test-set evaluation | Done once, `reports/test_results.md` |
 
-### Results so far (validation split, 3,417 reviews)
+### Results (final DistilBERT run; test split scored once)
 
 Sentiment is three-class (1-2 stars negative, 3 neutral, 4-5 positive). About 77% of reviews are positive, so macro-F1 is the headline metric.
 
-| Model | Accuracy | Macro-F1 |
-|---|---|---|
-| TF-IDF + logistic regression | 0.7951 | 0.6245 |
-| Fine-tuned DistilBERT | 0.8303 | 0.6823 |
+| Model | Val accuracy | Val macro-F1 | Test accuracy | Test macro-F1 |
+|---|---|---|---|---|
+| TF-IDF + logistic regression | 0.7951 | 0.6245 | 0.7930 | 0.6182 |
+| Fine-tuned DistilBERT | 0.8288 | 0.6785 | 0.8269 | 0.6670 |
+
+The test gain is +0.049 macro-F1 (paired bootstrap 95% interval +0.025 to +0.074).
 
 DistilBERT results vary by about 0.006 macro-F1 between runs of the same settings (GPU training is not bit-reproducible), and the neutral class is the weakest for both models. For topics, BERTopic (45 topics after merging near-duplicates) surfaces specific issue topics that LDA's ten broad topics do not. See [`docs/results-draft.md`](docs/results-draft.md) for the full results and error analysis.
 
@@ -92,10 +91,5 @@ DistilBERT results vary by about 0.006 macro-F1 between runs of the same setting
 python -m scripts.predict_review "I love this top, but it runs small so I sent it back."
 ```
 
-Or open the dashboard (train and validation splits only; the test split stays held out):
-
-```bash
-streamlit run app/dashboard.py
-```
 
 `predict_review` trains the baseline and shows the predicted class, probabilities and the words that drove the prediction. DistilBERT is trained on Colab and its weights are not in the repository. Every other result can be regenerated with the commands in [`docs/reproducibility.md`](docs/reproducibility.md).

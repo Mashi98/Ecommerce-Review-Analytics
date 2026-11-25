@@ -55,7 +55,6 @@ The NLP difficulty here is specific to the genre rather than generic. Reviews ar
 | Improved model | Fine-tuned **DistilBERT** (`distilbert-base-uncased`) — same target, same splits, same rows | Advanced AI / **Natural Language Processing** |
 | Issue discovery | **BERTopic** (sentence embeddings → UMAP → HDBSCAN → stopword-filtered c-TF-IDF) as primary; **LDA** (gensim) as classical comparator | **Natural Language Processing** / Data Mining |
 | Evaluation | Accuracy, macro- and per-class P/R/F1, confusion matrix; `c_v` topic coherence; qualitative error analysis of misclassified reviews by linguistic cause | Advanced Machine Learning / **Natural Language Processing** |
-| Delivery | Streamlit dashboard — sentiment and dominant issues by department, class and age band | Big Data Analysis |
 
 **Natural Language Processing is the spine module.** Every other module contributes a stage; NLP supplies the object of study. It owns the preprocessing pipeline, both text representations, the topic-modelling methods, `c_v` coherence as an intrinsic NLP evaluation metric, and the error taxonomy (negation scope, mixed-aspect documents, sarcasm) that makes the baseline-vs-transformer comparison explanatory rather than merely numerical.
 
@@ -67,12 +66,11 @@ The NLP difficulty here is specific to the genre rather than generic. Reviews ar
 
 ## 4. Expected Outputs
 
-1. **A reproducible end-to-end pipeline** — ingest → clean → preprocess → classify → extract topics → visualise — in a public GitHub repository, with every `src/` module covered by a passing `pytest` suite, fixed seeds and pinned dependencies throughout.
+1. **A reproducible end-to-end pipeline** — ingest → clean → preprocess → classify → extract topics — in a public GitHub repository, with every `src/` module covered by a passing `pytest` suite, fixed seeds and pinned dependencies throughout.
 2. **A like-for-like model comparison**: TF-IDF + linear baseline against fine-tuned DistilBERT on identical splits, reported as accuracy, macro-F1, per-class P/R/F1 and confusion matrix, with a justified account of *where* the transformer's gain arises rather than a single headline number.
 3. **A labelled topic set per product department**, validated quantitatively (`c_v` coherence, LDA vs. BERTopic) and qualitatively (manual spot-checks of representative reviews per topic), with overlapping or incoherent topics reported honestly rather than forced into clean labels.
 4. **Linguistic error analysis** over misclassified reviews, categorised by cause — negation scope, mixed-aspect reviews, sarcasm, rating–text mismatch — providing the evidence for the representational argument in Task A.
-5. **A Streamlit dashboard** presenting sentiment and dominant issues by department, class and age band: the business-facing deliverable.
-6. **Final report** covering methodology, results, comparison, business interpretation, limitations and trade-offs, plus the Reproducibility Checklist (hardware, seeds, splits, hyperparameters, dependencies).
+5. **Final report** covering methodology, results, comparison, business interpretation, limitations and trade-offs, plus the Reproducibility Checklist (hardware, seeds, splits, hyperparameters, dependencies).
 
 ---
 

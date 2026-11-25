@@ -4,7 +4,6 @@ Regenerate with `python -m scripts.architecture_diagram`; it writes
 `reports/figures/architecture.png` (report, slides) and `architecture.svg`.
 
 The diagram shows what is built, with the module that implements each box.
-Dashed boxes are planned and not yet implemented.
 """
 
 from pathlib import Path
@@ -152,11 +151,7 @@ def draw() -> plt.Figure:
     box(ax, c5[0], 38, c5[1], 20, "Reports",
         ["error-analysis and", "topic reports (md, csv)", "", "results draft", "", "figures"],
         module="reports/ · docs/", fill=OUT)
-    box(ax, c5[0], 14, c5[1], 18, "Dashboard",
-        ["Streamlit:", "sentiment trends, topics", "by department / class,", "age filter"],
-        module="planned", fill="#f7f7f7", dashed=True)
     arrow(ax, (c4[0] + c4[1], 48), (c5[0], 48))
-    arrow(ax, (c4[0] + c4[1], 24), (c5[0], 24), dashed=True)
 
     # held-out test set feeds the final evaluation only
     test_x = c1[0] + 2 * (sw + 0.9) + sw / 2
@@ -171,8 +166,8 @@ def draw() -> plt.Figure:
 
     # ---- Legend -----------------------------------------------------------
     items = [(LOCAL, "-", "runs locally (Python 3.13)"), (COLAB, "-", "runs on Colab T4 GPU"),
-             (DATA, "-", "data"), (OUT, "-", "output"), ("#f7f7f7", "--", "planned")]
-    x = 30
+             (DATA, "-", "data"), (OUT, "-", "output")]
+    x = 34
     for fill, style, label in items:
         ax.add_patch(FancyBboxPatch((x, -3.2), 2.4, 1.8, boxstyle="round,pad=0,rounding_size=0.3",
                                     facecolor=fill, edgecolor=INK, linewidth=1,

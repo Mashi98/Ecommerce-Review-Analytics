@@ -13,7 +13,6 @@ accelerate
 evaluate
 matplotlib
 seaborn
-streamlit
 jupyter
 imbalanced-learn
 tqdm
